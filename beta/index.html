@@ -33,7 +33,7 @@ const STORE = "mw_beta_draft";
 const loadStore = () => { try { return JSON.parse(localStorage.getItem(STORE)) || null; } catch { return null; } };
 const saveStore = (d) => { try { localStorage.setItem(STORE, JSON.stringify(d)); } catch {} };
 
-const EMPTY = { title: "", price: "", description: "", hashtags: "", note: "", status: "draft", comment: "", graduated: false };
+const EMPTY = { title: "", price: "", description: "", hashtags: "", note: "", status: "draft", comment: "", graduated: false, approvedCount: 0 };
 
 // ─── shared bits ─────────────────────────────────────────────
 const C = { pink: "#EC4899", pinkD: "#BE185D", grad: "linear-gradient(135deg,#EC4899,#F43F5E)",
@@ -105,6 +105,11 @@ function ShareLink({ link, label }) {
         </button>
       </div>
       <div style={{ fontSize: 11, color: C.faint, marginTop: 6 }}>このリンクをLINEなどで送ってください。</div>
+      {link.length > 1800 && (
+        <div style={{ fontSize: 11, color: C.red, marginTop: 6, lineHeight: 1.5 }}>
+          ⚠️ 説明文が長すぎて、リンクがLINEなどで途中で切れるかもしれません。説明文を少し短くすると安全です。
+        </div>
+      )}
     </div>
   );
 }
@@ -123,9 +128,32 @@ function MercariCopy({ draft }) {
           color: C.pink, fontSize: 13, fontWeight: 700, border: `1.5px solid #FCA5A5`, textDecoration: "none" }}>
         🛍 メルカリの出品ページを開く（写真はここで添付）↗
       </a>
-      <div style={{ fontSize: 11, color: C.faint, marginTop: 8, lineHeight: 1.6 }}>
-        💡 写真は安全のためメルカリアプリで直接撮影・添付してください（現物写真が規約上必須）。
+      <div style={{ fontSize: 11, color: C.sub, marginTop: 10, lineHeight: 1.8, background: C.soft, borderRadius: 10, padding: "10px 12px" }}>
+        <div style={{ fontWeight: 700, color: C.ink, marginBottom: 2 }}>出品の手順</div>
+        ① 上の「コピー」を押す<br/>
+        ②「メルカリの出品ページを開く」を押す<br/>
+        ③ メルカリで<b>商品の写真を撮って</b>、コピーした文章を貼り付ける<br/>
+        <span style={{ color: C.faint }}>※ 写真は規約上、実物をメルカリで撮る必要があります。</span>
       </div>
+    </div>
+  );
+}
+
+// 妻モードの進捗ステップ表示
+function WifeSteps({ status }) {
+  const cur = status === "approved" ? 3 : status === "pending" ? 2 : 1;
+  const steps = ["下書き", "夫が確認", "出品OK"];
+  return (
+    <div style={{ display: "flex", gap: 6, marginBottom: 14 }}>
+      {steps.map((s, i) => {
+        const on = i + 1 <= cur;
+        return (
+          <div key={i} style={{ flex: 1, textAlign: "center" }}>
+            <div style={{ height: 4, borderRadius: 99, background: on ? C.pink : C.line, marginBottom: 4 }} />
+            <span style={{ fontSize: 10, fontWeight: on ? 700 : 400, color: on ? C.pinkD : C.faint }}>{s}</span>
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -135,8 +163,14 @@ function WifeView({ draft, setDraft }) {
   const editable = draft.status === "draft" || draft.status === "rejected";
   const up = (k) => (v) => setDraft({ ...draft, [k]: v });
   const [link, setLink] = useState("");
+  const [err, setErr] = useState("");
 
   const requestApproval = () => {
+    if (!draft.title.trim() || !String(draft.price).trim()) {
+      setErr("タイトルと価格は入れてね（夫が確認できるように）。");
+      return;
+    }
+    setErr("");
     const next = { ...draft, status: "pending" };
     setDraft(next);
     setLink(makeLink("husband", next));
@@ -145,6 +179,7 @@ function WifeView({ draft, setDraft }) {
 
   return (
     <div>
+      <WifeSteps status={draft.status} />
       {draft.status === "approved" && (
         <Banner tone="ok" title="✓ 夫が承認しました" body={draft.comment ? `コメント：${draft.comment}` : "コピーしてメルカリに出品しましょう。"} />
       )}
@@ -168,10 +203,12 @@ function WifeView({ draft, setDraft }) {
           placeholder="ここの値段、これで合ってる？など" />
       )}
 
-      <label style={{ display: "flex", alignItems: "center", gap: 8, margin: "8px 0 14px", fontSize: 12, color: C.sub }}>
-        <input type="checkbox" checked={draft.graduated} onChange={e => setDraft({ ...draft, graduated: e.target.checked })} />
-        🎓 卒業モード（承認なしで自分で出品する）
-      </label>
+      {(draft.approvedCount || 0) >= 3 && (
+        <label style={{ display: "flex", alignItems: "center", gap: 8, margin: "8px 0 14px", fontSize: 12, color: C.sub }}>
+          <input type="checkbox" checked={draft.graduated} onChange={e => setDraft({ ...draft, graduated: e.target.checked })} />
+          🎓 卒業モード（承認なしで自分で出品する）
+        </label>
+      )}
 
       {draft.graduated ? (
         <MercariCopy draft={draft} />
@@ -186,9 +223,12 @@ function WifeView({ draft, setDraft }) {
           </button>
         </>
       ) : (
-        <PrimaryBtn onClick={requestApproval}>
-          {draft.status === "rejected" ? "→ 直したので、もう一度 夫に承認を依頼する" : "→ 夫に承認を依頼する"}
-        </PrimaryBtn>
+        <>
+          {err && <div style={{ fontSize: 12, color: C.red, marginBottom: 8 }}>{err}</div>}
+          <PrimaryBtn onClick={requestApproval}>
+            {draft.status === "rejected" ? "→ 直したので、もう一度 夫に承認を依頼する" : "→ 夫に承認を依頼する"}
+          </PrimaryBtn>
+        </>
       )}
     </div>
   );
@@ -206,7 +246,8 @@ function HusbandView({ draft, setDraft }) {
 
   const decide = (status) => {
     if (status === "rejected" && !comment.trim()) { alert("差し戻しには、どこを直すかコメントを入れてください。"); return; }
-    const next = { ...draft, status, comment: comment.trim() };
+    const inc = status === "approved" ? (draft.approvedCount || 0) + 1 : (draft.approvedCount || 0);
+    const next = { ...draft, status, comment: comment.trim(), approvedCount: inc };
     setDraft(next);
     setResultLink(makeLink("wife", next));
     setDecided(status);
@@ -256,11 +297,44 @@ function Row({ label, value, pre }) {
   );
 }
 
+// ─── 初回ガイド（妻の初回のみ）────────────────────────────────
+function Guide({ onClose }) {
+  const items = [
+    ["📝", "① あなたが下書き", "商品の名前・値段・説明を入力します。わからなくて大丈夫。"],
+    ["✅", "② 夫が確認", "「夫に承認を依頼」を押すと、夫がチェックしてOKしてくれます。"],
+    ["🛍", "③ 自分で出品", "OKが出たらコピーして、メルカリで写真を撮って出品！"],
+  ];
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.55)", display: "flex",
+      alignItems: "center", justifyContent: "center", padding: 20, zIndex: 50 }}>
+      <div style={{ background: "#fff", borderRadius: 18, padding: 22, maxWidth: 360, width: "100%" }}>
+        <div style={{ fontSize: 17, fontWeight: 800, color: C.ink, marginBottom: 4 }}>はじめての方へ 👋</div>
+        <div style={{ fontSize: 12, color: C.sub, marginBottom: 16 }}>使い方は3ステップだけです。</div>
+        {items.map(([e, t, d], i) => (
+          <div key={i} style={{ display: "flex", gap: 10, marginBottom: 12 }}>
+            <span style={{ fontSize: 22 }}>{e}</span>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: C.ink }}>{t}</div>
+              <div style={{ fontSize: 11, color: C.sub, lineHeight: 1.5 }}>{d}</div>
+            </div>
+          </div>
+        ))}
+        <div style={{ fontSize: 11, color: C.faint, background: C.soft, borderRadius: 10, padding: "8px 10px", marginBottom: 16, lineHeight: 1.6 }}>
+          💡 写真はこのアプリでは扱いません。メルカリで実物を撮って添付します。
+        </div>
+        <PrimaryBtn onClick={onClose}>はじめる</PrimaryBtn>
+      </div>
+    </div>
+  );
+}
+
 // ─── MAIN ────────────────────────────────────────────────────
 function App() {
   const [mode, setMode] = useState("wife");
   const [draft, setDraftState] = useState(() => loadStore() || EMPTY);
   const [incoming, setIncoming] = useState(null); // 'husband'(届いた依頼) | 'wife'(届いた結果)
+  const [showGuide, setShowGuide] = useState(() => !localStorage.getItem("mw_beta_seen"));
+  const closeGuide = () => { try { localStorage.setItem("mw_beta_seen", "1"); } catch {} setShowGuide(false); };
 
   // hash payload を読み込み（サーバーレス共有リンク）。
   // 新規ロード時に加え、同一タブでハッシュだけ変わった場合(hashchange)も拾う。
@@ -274,6 +348,7 @@ function App() {
         saveStore(payload.draft);
         if (payload.to === "husband") { setMode("husband"); setIncoming("husband"); }
         if (payload.to === "wife") { setMode("wife"); setIncoming("wife"); }
+        setShowGuide(false); // リンク経由（往復中）は初回ガイドを出さない
         history.replaceState(null, "", baseUrl()); // URLを綺麗に
       }
     };
@@ -288,6 +363,7 @@ function App() {
   return (
     <div style={{ minHeight: "100svh", display: "flex", justifyContent: "center", padding: 14 }}>
       <div style={{ width: "100%", maxWidth: 460 }}>
+        {showGuide && mode === "wife" && <Guide onClose={closeGuide} />}
         {/* header */}
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
           <span style={{ fontSize: 16, fontWeight: 800, color: C.ink }}>🛒 出品ワークスペース</span>
