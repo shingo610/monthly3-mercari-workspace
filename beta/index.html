@@ -1,0 +1,326 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#EC4899" />
+  <title>出品ワークスペース β（夫婦ペア・承認ループ版）</title>
+  <meta name="description" content="未経験の家族が、熟練者の承認に乗って一人で出品できるようになる。下書き→承認→公開の夫婦ペア出品ツール。" />
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; background: #F1F5F9;
+      font-family: 'Hiragino Kaku Gothic ProN','Noto Sans JP',system-ui,sans-serif;
+      -webkit-text-size-adjust: 100%; }
+    .boot { min-height: 100svh; display:flex; align-items:center; justify-content:center; color:#94A3B8; font-size:14px; }
+  </style>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body>
+  <div id="root"><div class="boot">読み込み中…</div></div>
+
+  <script type="text/babel" data-presets="react">
+const { useState, useEffect, useCallback, useRef } = React;
+
+// ─── serverless encode/decode (UTF-8 safe) ───────────────────
+const enc = (obj) => btoa(unescape(encodeURIComponent(JSON.stringify(obj))));
+const dec = (s) => { try { return JSON.parse(decodeURIComponent(escape(atob(s)))); } catch { return null; } };
+const baseUrl = () => location.origin + location.pathname;
+const makeLink = (to, draft) => `${baseUrl()}#p=${enc({ to, draft })}`;
+
+const STORE = "mw_beta_draft";
+const loadStore = () => { try { return JSON.parse(localStorage.getItem(STORE)) || null; } catch { return null; } };
+const saveStore = (d) => { try { localStorage.setItem(STORE, JSON.stringify(d)); } catch {} };
+
+const EMPTY = { title: "", price: "", description: "", hashtags: "", note: "", status: "draft", comment: "", graduated: false };
+
+// ─── shared bits ─────────────────────────────────────────────
+const C = { pink: "#EC4899", pinkD: "#BE185D", grad: "linear-gradient(135deg,#EC4899,#F43F5E)",
+  ink: "#1E293B", sub: "#64748B", faint: "#94A3B8", line: "#E2E8F0", soft: "#F8FAFC",
+  green: "#10B981", greenBg: "#D1FAE5", amber: "#B45309", amberBg: "#FFFBEB", red: "#DC2626" };
+
+function useCopy() {
+  const [done, setDone] = useState("");
+  const copy = useCallback(async (text, key) => {
+    try { await navigator.clipboard.writeText(text); setDone(key); setTimeout(() => setDone(""), 2000); } catch {}
+  }, []);
+  return [done, copy];
+}
+
+function Field({ label, value, onChange, rows, type, placeholder, disabled, badge }) {
+  return (
+    <div style={{ marginBottom: 12 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 5 }}>
+        <span style={{ fontSize: 11, fontWeight: 700, color: C.sub }}>{label}</span>
+        {badge && <span style={{ fontSize: 10, color: C.faint }}>{badge}</span>}
+      </div>
+      {rows ? (
+        <textarea value={value} onChange={e => onChange(e.target.value)} rows={rows} disabled={disabled}
+          placeholder={placeholder}
+          style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: `1.5px solid ${C.line}`,
+            fontSize: 13, color: C.ink, lineHeight: 1.6, resize: "vertical", fontFamily: "inherit",
+            background: disabled ? "#F1F5F9" : "#fff", outline: "none" }} />
+      ) : (
+        <input type={type || "text"} value={value} onChange={e => onChange(e.target.value)} disabled={disabled}
+          placeholder={placeholder}
+          style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: `1.5px solid ${C.line}`,
+            fontSize: 14, color: C.ink, fontFamily: "inherit", background: disabled ? "#F1F5F9" : "#fff", outline: "none" }} />
+      )}
+    </div>
+  );
+}
+
+function PrimaryBtn({ onClick, children, bg }) {
+  return (
+    <button onClick={onClick} style={{ width: "100%", padding: "14px", borderRadius: 14, border: "none",
+      background: bg || C.grad, color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer",
+      boxShadow: "0 4px 14px rgba(236,72,153,0.25)" }}>{children}</button>
+  );
+}
+
+function Banner({ tone, title, body }) {
+  const map = { ok: [C.greenBg, C.green], warn: [C.amberBg, C.amber], info: ["#EFF6FF", "#2563EB"] };
+  const [bg, fg] = map[tone] || map.info;
+  return (
+    <div style={{ background: bg, border: `1.5px solid ${fg}33`, borderRadius: 12, padding: "12px 14px", marginBottom: 14 }}>
+      <div style={{ fontSize: 13, fontWeight: 700, color: fg }}>{title}</div>
+      {body && <div style={{ fontSize: 12, color: C.sub, marginTop: 3, whiteSpace: "pre-wrap" }}>{body}</div>}
+    </div>
+  );
+}
+
+function ShareLink({ link, label }) {
+  const [done, copy] = useCopy();
+  return (
+    <div style={{ marginTop: 12 }}>
+      <div style={{ fontSize: 12, color: C.sub, marginBottom: 6 }}>{label}</div>
+      <div style={{ display: "flex", gap: 6 }}>
+        <input readOnly value={link} onFocus={e => e.target.select()}
+          style={{ flex: 1, padding: "9px 10px", borderRadius: 10, border: `1.5px solid ${C.line}`,
+            fontSize: 11, color: C.sub, background: C.soft, outline: "none" }} />
+        <button onClick={() => copy(link, "l")} style={{ padding: "0 14px", borderRadius: 10, border: "none",
+          background: done ? C.green : C.ink, color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}>
+          {done ? "✓ コピー" : "コピー"}
+        </button>
+      </div>
+      <div style={{ fontSize: 11, color: C.faint, marginTop: 6 }}>このリンクをLINEなどで送ってください。</div>
+    </div>
+  );
+}
+
+function MercariCopy({ draft }) {
+  const [done, copy] = useCopy();
+  const all = `【商品名】\n${draft.title}\n\n【説明文】\n${draft.description}\n\n【価格】\n${draft.price}円\n\n【ハッシュタグ】\n${draft.hashtags}`;
+  return (
+    <div style={{ marginTop: 6 }}>
+      <button onClick={() => copy(all, "a")} style={{ width: "100%", padding: "14px", borderRadius: 14, border: "none",
+        background: done ? C.grad : "#1E293B", color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer", marginBottom: 8 }}>
+        {done ? "✓ コピーしました！" : "⎘ 全部まとめてコピー"}
+      </button>
+      <a href="https://jp.mercari.com/sell" target="_blank" rel="noreferrer"
+        style={{ display: "block", textAlign: "center", padding: "12px", borderRadius: 14, background: "#FFF0F7",
+          color: C.pink, fontSize: 13, fontWeight: 700, border: `1.5px solid #FCA5A5`, textDecoration: "none" }}>
+        🛍 メルカリの出品ページを開く（写真はここで添付）↗
+      </a>
+      <div style={{ fontSize: 11, color: C.faint, marginTop: 8, lineHeight: 1.6 }}>
+        💡 写真は安全のためメルカリアプリで直接撮影・添付してください（現物写真が規約上必須）。
+      </div>
+    </div>
+  );
+}
+
+// ─── 妻モード（下書き）────────────────────────────────────────
+function WifeView({ draft, setDraft }) {
+  const editable = draft.status === "draft" || draft.status === "rejected";
+  const up = (k) => (v) => setDraft({ ...draft, [k]: v });
+  const [link, setLink] = useState("");
+
+  const requestApproval = () => {
+    const next = { ...draft, status: "pending" };
+    setDraft(next);
+    setLink(makeLink("husband", next));
+  };
+  const backToDraft = () => { setDraft({ ...draft, status: "draft", comment: "" }); setLink(""); };
+
+  return (
+    <div>
+      {draft.status === "approved" && (
+        <Banner tone="ok" title="✓ 夫が承認しました" body={draft.comment ? `コメント：${draft.comment}` : "コピーしてメルカリに出品しましょう。"} />
+      )}
+      {draft.status === "rejected" && (
+        <Banner tone="warn" title="✏️ 差し戻し（直してね）" body={draft.comment || "コメントなし"} />
+      )}
+      {draft.status === "pending" && (
+        <Banner tone="info" title="⏳ 夫の承認待ち" body="下のリンクを夫に送って承認してもらいましょう。" />
+      )}
+
+      <Field label="商品タイトル" value={draft.title} onChange={up("title")} disabled={!editable}
+        badge={`${(draft.title||"").length}/40`} placeholder="例）NIKE エアマックス90 26cm 美品" />
+      <Field label="価格（円）" type="number" value={draft.price} onChange={up("price")} disabled={!editable} placeholder="3500" />
+      <Field label="説明文" rows={6} value={draft.description} onChange={up("description")} disabled={!editable}
+        placeholder="状態・サイズ・付属品など" />
+      <Field label="ハッシュタグ" rows={2} value={draft.hashtags} onChange={up("hashtags")} disabled={!editable}
+        placeholder="#NIKE #スニーカー #美品" />
+
+      {editable && (
+        <Field label="夫へのメモ（任意）" rows={2} value={draft.note} onChange={up("note")}
+          placeholder="ここの値段、これで合ってる？など" />
+      )}
+
+      <label style={{ display: "flex", alignItems: "center", gap: 8, margin: "8px 0 14px", fontSize: 12, color: C.sub }}>
+        <input type="checkbox" checked={draft.graduated} onChange={e => setDraft({ ...draft, graduated: e.target.checked })} />
+        🎓 卒業モード（承認なしで自分で出品する）
+      </label>
+
+      {draft.graduated ? (
+        <MercariCopy draft={draft} />
+      ) : draft.status === "approved" ? (
+        <MercariCopy draft={draft} />
+      ) : draft.status === "pending" ? (
+        <>
+          <ShareLink link={link || makeLink("husband", draft)} label="① 夫に送る承認リンク" />
+          <button onClick={backToDraft} style={{ width: "100%", marginTop: 10, padding: "10px", borderRadius: 12,
+            background: "transparent", color: C.faint, fontSize: 12, border: `1.5px solid ${C.line}`, cursor: "pointer" }}>
+            ← 下書きに戻して直す
+          </button>
+        </>
+      ) : (
+        <PrimaryBtn onClick={requestApproval}>
+          {draft.status === "rejected" ? "→ 直したので、もう一度 夫に承認を依頼する" : "→ 夫に承認を依頼する"}
+        </PrimaryBtn>
+      )}
+    </div>
+  );
+}
+
+// ─── 夫モード（承認）──────────────────────────────────────────
+function HusbandView({ draft, setDraft }) {
+  const [comment, setComment] = useState("");
+  const [resultLink, setResultLink] = useState("");
+  const [decided, setDecided] = useState("");
+
+  if (!draft || (draft.status === "draft" && !draft.title)) {
+    return <Banner tone="info" title="承認する下書きがありません" body="妻から届いた承認リンクを開くと、ここに下書きが表示されます。" />;
+  }
+
+  const decide = (status) => {
+    if (status === "rejected" && !comment.trim()) { alert("差し戻しには、どこを直すかコメントを入れてください。"); return; }
+    const next = { ...draft, status, comment: comment.trim() };
+    setDraft(next);
+    setResultLink(makeLink("wife", next));
+    setDecided(status);
+  };
+
+  return (
+    <div>
+      <Banner tone="info" title="👀 妻の下書きを確認してください" />
+      {draft.note && <Banner tone="warn" title="妻からのメモ" body={draft.note} />}
+
+      <div style={{ background: "#fff", border: `1.5px solid ${C.line}`, borderRadius: 12, padding: 14, marginBottom: 14 }}>
+        <Row label="タイトル" value={draft.title} />
+        <Row label="価格" value={`¥${draft.price}`} />
+        <Row label="説明文" value={draft.description} pre />
+        <Row label="ハッシュタグ" value={draft.hashtags} />
+      </div>
+
+      {decided ? (
+        <>
+          <Banner tone={decided === "approved" ? "ok" : "warn"}
+            title={decided === "approved" ? "✓ 承認しました" : "✏️ 差し戻しました"}
+            body="下のリンクを妻に送り返してください。" />
+          <ShareLink link={resultLink} label="妻に送り返すリンク" />
+        </>
+      ) : (
+        <>
+          <Field label="コメント（差し戻しは必須）" rows={3} value={comment} onChange={setComment}
+            placeholder="例）価格は3,200円の方が売れやすいよ。説明の状態欄もう少し詳しく。" />
+          <div style={{ display: "flex", gap: 8 }}>
+            <button onClick={() => decide("rejected")} style={{ flex: 1, padding: "13px", borderRadius: 12, border: `1.5px solid ${C.line}`,
+              background: "#fff", color: C.sub, fontSize: 14, fontWeight: 700, cursor: "pointer" }}>↩ 差し戻す</button>
+            <button onClick={() => decide("approved")} style={{ flex: 2, padding: "13px", borderRadius: 12, border: "none",
+              background: C.green, color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>✓ 承認する</button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function Row({ label, value, pre }) {
+  return (
+    <div style={{ marginBottom: 10 }}>
+      <div style={{ fontSize: 10, fontWeight: 700, color: C.faint, marginBottom: 2 }}>{label}</div>
+      <div style={{ fontSize: 13, color: C.ink, whiteSpace: pre ? "pre-wrap" : "normal", lineHeight: 1.6 }}>{value || "（未入力）"}</div>
+    </div>
+  );
+}
+
+// ─── MAIN ────────────────────────────────────────────────────
+function App() {
+  const [mode, setMode] = useState("wife");
+  const [draft, setDraftState] = useState(() => loadStore() || EMPTY);
+  const [incoming, setIncoming] = useState(null); // 'husband'(届いた依頼) | 'wife'(届いた結果)
+
+  // hash payload を読み込み（サーバーレス共有リンク）。
+  // 新規ロード時に加え、同一タブでハッシュだけ変わった場合(hashchange)も拾う。
+  useEffect(() => {
+    const apply = () => {
+      const m = location.hash.match(/p=([^&]+)/);
+      if (!m) return;
+      const payload = dec(m[1]);
+      if (payload && payload.draft) {
+        setDraftState(payload.draft);
+        saveStore(payload.draft);
+        if (payload.to === "husband") { setMode("husband"); setIncoming("husband"); }
+        if (payload.to === "wife") { setMode("wife"); setIncoming("wife"); }
+        history.replaceState(null, "", baseUrl()); // URLを綺麗に
+      }
+    };
+    apply();
+    window.addEventListener("hashchange", apply);
+    return () => window.removeEventListener("hashchange", apply);
+  }, []);
+
+  const setDraft = (d) => { setDraftState(d); saveStore(d); };
+  const reset = () => { if (confirm("下書きを消して新しく始めますか？")) { setDraft(EMPTY); setIncoming(null); } };
+
+  return (
+    <div style={{ minHeight: "100svh", display: "flex", justifyContent: "center", padding: 14 }}>
+      <div style={{ width: "100%", maxWidth: 460 }}>
+        {/* header */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+          <span style={{ fontSize: 16, fontWeight: 800, color: C.ink }}>🛒 出品ワークスペース</span>
+          <span style={{ fontSize: 10, fontWeight: 700, color: C.pink, background: "#FFF0F7", padding: "3px 8px", borderRadius: 99 }}>β 夫婦ペア版</span>
+        </div>
+        <div style={{ fontSize: 12, color: C.faint, marginBottom: 12 }}>
+          妻が下書き → 夫が承認 → 公開。慣れたら卒業モードで一人で。
+        </div>
+
+        {/* mode toggle */}
+        <div style={{ display: "flex", gap: 6, background: "#fff", padding: 5, borderRadius: 12, marginBottom: 16, border: `1.5px solid ${C.line}` }}>
+          {[["wife", "👩 妻モード（下書き）"], ["husband", "👨 夫モード（承認）"]].map(([k, lbl]) => (
+            <button key={k} onClick={() => setMode(k)} style={{ flex: 1, padding: "9px", borderRadius: 9, border: "none", cursor: "pointer",
+              fontSize: 12, fontWeight: 700, background: mode === k ? (k === "wife" ? C.grad : C.green) : "transparent",
+              color: mode === k ? "#fff" : C.faint }}>{lbl}</button>
+          ))}
+        </div>
+
+        <div style={{ background: "#fff", borderRadius: 18, padding: 18, boxShadow: "0 6px 24px rgba(0,0,0,0.06)" }}>
+          {mode === "wife" ? <WifeView draft={draft} setDraft={setDraft} /> : <HusbandView draft={draft} setDraft={setDraft} />}
+        </div>
+
+        <button onClick={reset} style={{ width: "100%", marginTop: 12, padding: "10px", borderRadius: 12, background: "transparent",
+          color: C.faint, fontSize: 11, border: "none", cursor: "pointer" }}>↺ 最初からやり直す</button>
+        <div style={{ textAlign: "center", padding: "8px 0 16px", fontSize: 10, color: "#CBD5E1" }}>
+          β版・夫婦ペアでの出品オンボーディング検証用
+        </div>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+  </script>
+</body>
+</html>
