@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>"はじめての出品"を、ひとりにしない。 — 夫婦ペアのフリマ出品ツール</title>
+<meta name="description" content="メルカリのAIは出品を速くする。でも“はじめての出品”（0→1）はまだ誰も支えてくれない。家族のもう一人を、出品できる人に変えるツール。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  :root {
+    --c-text: #1e293b; --c-muted: #64748b; --c-faint: #94a3b8; --c-line: #e2e8f0;
+    --c-bg-soft: #f8fafc; --c-mercari: #ec4899; --c-mercari-bg: #fdf2f8;
+    --c-good: #10b981; --c-good-bg: #ecfdf5; --c-blue: #2563eb; --c-blue-bg: #eff6ff;
+  }
+  html { font-family: 'Noto Sans JP', 'Inter', -apple-system, sans-serif; }
+  body { color: var(--c-text); line-height: 1.7; -webkit-font-smoothing: antialiased; }
+  .hl { color: var(--c-mercari); font-weight: 700; }
+  .card { background: #fff; border: 1px solid var(--c-line); border-radius: 16px; }
+  .icon-circle { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0; }
+  .bg-dot { background-image: radial-gradient(circle, #e2e8f0 1px, transparent 1px); background-size: 16px 16px; }
+</style>
+</head>
+<body class="bg-white">
+
+<main class="max-w-3xl mx-auto px-6 md:px-8 py-14 md:py-20">
+
+  <!-- ─── HERO ──────────────────────────────────────────── -->
+  <header class="mb-16">
+    <div class="text-xs tracking-wider text-slate-500 mb-4 font-medium">夫婦ペアのフリマ出品ツール（β）</div>
+    <h1 class="text-3xl md:text-5xl font-bold text-slate-900 mb-5 leading-tight">
+      "はじめての出品"を、<br><span class="hl">ひとりにしない。</span>
+    </h1>
+    <p class="text-lg md:text-xl text-slate-600 leading-snug mb-6">
+      メルカリのAIは、出品を <strong class="text-slate-800">速く</strong> してくれる。<br>
+      でも「何から書けばいいか分からない」最初の一歩（<span class="hl">0→1</span>）は、まだ誰も支えてくれない。
+    </p>
+    <p class="text-slate-600 mb-8">
+      <strong class="text-slate-800">〔名称〕</strong> は、慣れた家族の"承認"に乗って、<span class="hl">家族のもう一人を、出品できる人に変える</span> ツールです。
+    </p>
+    <a href="../beta/" class="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl text-white font-bold text-base transition hover:opacity-90"
+       style="background: linear-gradient(135deg,#ec4899,#f43f5e); box-shadow: 0 6px 18px rgba(236,72,153,0.28);">
+      実際に触ってみる（登録不要）→
+    </a>
+    <div class="text-xs text-slate-400 mt-2">サンプルでそのまま体験できます。</div>
+  </header>
+
+  <!-- ─── メルカリAIとの違い ─────────────────────────────── -->
+  <section class="mb-16">
+    <div class="flex items-center gap-2 mb-3">
+      <span class="icon-circle" style="background: var(--c-mercari-bg); color: var(--c-mercari);">🆚</span>
+      <div class="text-xs tracking-wider font-medium text-slate-500">DIFFERENCE</div>
+    </div>
+    <h2 class="text-2xl md:text-3xl font-bold mb-3 text-slate-900">メルカリのAIと、何が違うの？</h2>
+    <p class="text-slate-600 mb-6">
+      メルカリのAIは素晴らしい。写真を撮れば、タイトルも説明も値段も自動で入る。
+      <strong class="text-slate-800">ただしそれは「もう出品できる人」のための、基本品の時短</strong>です。
+    </p>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
+      <div class="card p-5">
+        <div class="text-xs font-medium text-slate-500 mb-1">メルカリAI</div>
+        <div class="text-xl font-bold text-slate-800 mb-1">1 → N</div>
+        <div class="text-sm text-slate-600">既に出品できる人を、もっと速く。基本品の自動入力。</div>
+      </div>
+      <div class="card p-5" style="border-color:#fbcfe8; background:var(--c-mercari-bg);">
+        <div class="text-xs font-medium mb-1" style="color:var(--c-mercari)">〔名称〕</div>
+        <div class="text-xl font-bold text-slate-900 mb-1">0 → 1 <span class="text-base font-medium text-slate-500">＋ その先のN</span></div>
+        <div class="text-sm text-slate-700">出品できない人を、できる人に。難物・量・世帯まで。</div>
+      </div>
+    </div>
+
+    <div class="card p-5 md:p-6">
+      <div class="text-sm font-semibold text-slate-500 mb-3">〔名称〕が支えるのは、その手前と、その先</div>
+      <ul class="space-y-3">
+        <li class="flex gap-3"><span class="text-xl">🐣</span><div><strong class="text-slate-800">0→1</strong>：未経験の家族が、はじめて一人で出品できるようになるまで</div></li>
+        <li class="flex gap-3"><span class="text-xl">🤝</span><div><strong class="text-slate-800">承認ループ</strong>：慣れた人が下書きを確認→OK。間違えても大丈夫な安全網</div></li>
+        <li class="flex gap-3"><span class="text-xl">🎓</span><div><strong class="text-slate-800">卒業</strong>：慣れたら承認なしで独り立ち</div></li>
+        <li class="flex gap-3"><span class="text-xl">🔎</span><div><strong class="text-slate-800">目利きの継承</strong>：ブランドやサイズ表記のコツ（メルカリAIが拾えない判断）が家族の"型"として溜まる</div></li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ─── 経験者の時短 ──────────────────────────────────── -->
+  <section class="mb-16">
+    <div class="flex items-center gap-2 mb-3">
+      <span class="icon-circle" style="background: var(--c-blue-bg); color: var(--c-blue);">⚡</span>
+      <div class="text-xs tracking-wider font-medium text-slate-500">FOR POWER SELLERS</div>
+    </div>
+    <h2 class="text-2xl md:text-3xl font-bold mb-3 text-slate-900">もう慣れている人も、速くなる</h2>
+    <p class="text-slate-600 mb-4">
+      メルカリのAIは"基本的な品"を速くします。でも、ブランド品・ヴィンテージ・独特なサイズ表記——
+      <strong class="text-slate-800">判断が要る品ほど、AI任せでは止まる。</strong>
+    </p>
+    <div class="card p-5 md:p-6" style="background:var(--c-bg-soft);">
+      <p class="text-slate-700">
+        〔名称〕は、あなたが一度決めた<strong class="text-slate-900">"型"</strong>（タグの読み方・効く検索ワード・値付けの基準）を <span class="hl">ためて再利用</span>。
+        同じ判断を毎回しなくていい。<strong class="text-slate-900">数をこなすほど速くなる</strong>。
+        しかもその型は、<strong class="text-slate-900">家族の出品もそのまま助けます。</strong>
+      </p>
+    </div>
+  </section>
+
+  <!-- ─── 向いている人（正直ブロック）──────────────────── -->
+  <section class="mb-16">
+    <div class="card p-6 md:p-8" style="background: linear-gradient(135deg,#f8fafc,#fdf2f8); border-color:#fbcfe8;">
+      <h2 class="text-xl md:text-2xl font-bold text-slate-900 mb-4">〔名称〕が向くのは</h2>
+      <ul class="space-y-2 mb-5">
+        <li class="flex gap-2"><span class="hl">✓</span><span class="text-slate-700">家族にも出品を手伝ってほしい世帯</span></li>
+        <li class="flex gap-2"><span class="hl">✓</span><span class="text-slate-700">ブランド／ヴィンテージなど"判断が要る品"を数多く出す人</span></li>
+      </ul>
+      <p class="text-sm text-slate-500">
+        逆に、基本的な品をたまに一人で出すだけなら、<strong class="text-slate-700">メルカリのAIで十分</strong>です。
+      </p>
+    </div>
+  </section>
+
+  <!-- ─── CTA再掲 ───────────────────────────────────────── -->
+  <section class="mb-10 text-center">
+    <h2 class="text-2xl md:text-3xl font-bold text-slate-900 mb-2">まずは、触ってみてください</h2>
+    <p class="text-slate-600 mb-6">サンプル商品で、下書き→承認→出品の流れをそのまま体験できます。</p>
+    <a href="../beta/" class="inline-flex items-center gap-2 px-7 py-4 rounded-xl text-white font-bold text-base transition hover:opacity-90"
+       style="background: linear-gradient(135deg,#ec4899,#f43f5e); box-shadow: 0 6px 18px rgba(236,72,153,0.28);">
+      実際に触ってみる（登録不要）→
+    </a>
+  </section>
+
+  <!-- ─── footer ────────────────────────────────────────── -->
+  <footer class="pt-8 border-t border-slate-100 text-center">
+    <div class="text-xs text-slate-400 leading-relaxed">
+      ※ 開発中のβ版です（プロダクト名は仮）。写真は規約上、実物をメルカリで撮って添付します。<br>
+      対応：メルカリ（ラクマ・Yahoo!フリマは今後検討）
+    </div>
+  </footer>
+
+</main>
+
+</body>
+</html>
